@@ -1,5 +1,7 @@
 # Worker io_uring benchmark results for #791
 
+The November 26 rerun covers the current worker, SDK batching and FUSE seek-prefetch PRs with six matched pairs per workload. [PR-wise throughput, tail latency, CPU and raw trials](pr-rerun-2026-11-26/README.md)
+
 ## Backend-only release comparison
 
 Build the worker, SDK CLI and FUSE daemon from the same checkout. Run on writable ext4 with a working kernel ring, a working FUSE mount helper and sufficient free space for the write trial. The driver alternates arm order and changes only the worker backend for each matched workload. It checks the worker payload counters and writes individual operation results and routing counts to `runs.jsonl`. Pin the complete process tree to the same available CPUs in both arms.

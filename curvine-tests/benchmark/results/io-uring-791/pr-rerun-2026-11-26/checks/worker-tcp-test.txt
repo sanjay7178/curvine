@@ -1,0 +1,5 @@
+test real_io_uring::async_write_disconnect_and_restart_over_tcp ... ok
+test real_io_uring::buffered_complete_and_abandoned_write_after_restart_over_tcp ... ok
+test real_io_uring::write_block_over_tcp ... ok
+test real_io_uring::write_blocks_batch_over_tcp ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.13s

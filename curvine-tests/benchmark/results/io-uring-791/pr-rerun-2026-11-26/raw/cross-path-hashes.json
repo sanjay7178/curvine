@@ -1,0 +1,22 @@
+[
+  {
+    "enabled": false,
+    "mount_type": "fuse.curvinefs",
+    "sdk_to_fuse_sha256": "4be70987e33ffbcd99d691680377ae2850da771cb13ae8f9350b6e043a0af67e",
+    "fuse_to_sdk_sha256": "20ce87b96a894dff4f87f1d6d8448c1f017b657e90ccf841ed7bb671a69c37cb",
+    "read_bytes": 11534973,
+    "read_ring_bytes": 0,
+    "write_bytes": 7340412,
+    "write_ring_bytes": 0
+  },
+  {
+    "enabled": true,
+    "mount_type": "fuse.curvinefs",
+    "sdk_to_fuse_sha256": "4be70987e33ffbcd99d691680377ae2850da771cb13ae8f9350b6e043a0af67e",
+    "fuse_to_sdk_sha256": "20ce87b96a894dff4f87f1d6d8448c1f017b657e90ccf841ed7bb671a69c37cb",
+    "read_bytes": 11534973,
+    "read_ring_bytes": 11534973,
+    "write_bytes": 7340412,
+    "write_ring_bytes": 7340412
+  }
+]

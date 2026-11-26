@@ -1,0 +1,8 @@
+test client::rpc_client::raw_client_tests::gathered_cancellation_closes_connection_with_reply_outstanding ... ok
+test client::rpc_client::raw_client_tests::gathered_rejects_mismatched_reply_ids_and_closes_connection ... ok
+test client::rpc_client::raw_client_tests::gathered_timeout_closes_connection_with_reply_outstanding ... ok
+test client::rpc_client::raw_client_tests::idle_raw_client_keeps_live_connection ... ok
+test client::rpc_client::raw_client_tests::idle_raw_client_liveness_check_preserves_pending_bytes ... ok
+test client::rpc_client::raw_client_tests::idle_raw_client_rejects_peer_closed_before_another_rpc ... ok
+test client::rpc_client::raw_client_tests::idle_raw_client_respects_explicit_closed_state ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.01s

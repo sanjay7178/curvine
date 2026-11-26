@@ -1,0 +1,145 @@
+{
+  "pr_head_commits": {
+    "2497": "56f0ad726901a4cfc84e18b51ad173bf473452c9",
+    "2584": "c1cf6cf0c624e80ac7da4accd6aebd9b52ebd294",
+    "2585": "cccb6193f7e74aca1e0ecb8b9bf4f10c681efbd9"
+  },
+  "benchmark_repository": "CurvineIO/curvine",
+  "published_replay_commit": "4bbba8a083042016be783649cc65f5f828bb74a2",
+  "previous_worker_commit": "d06f3aae0e540dacbebc7f3ee50e68a2ce084baf",
+  "binaries": [
+    {
+      "run_binary": "final-bin/curvine-server",
+      "source": "56f0ad726901a4cfc84e18b51ad173bf473452c9",
+      "sha256": "23383c84f6b322f6a796637441e2b6bbe9bd24824963cb35ab477df137ecebaf",
+      "provenance": "published executable, verified byte for byte"
+    },
+    {
+      "run_binary": "final-bin/curvine-cli",
+      "source": "56f0ad726901a4cfc84e18b51ad173bf473452c9",
+      "sha256": "787fea22745f49d26274216b027275e55a239950c6b636dde1ed67aaed42cec4",
+      "provenance": "published executable, verified byte for byte"
+    },
+    {
+      "run_binary": "final-bin/curvine-fuse",
+      "source": "56f0ad726901a4cfc84e18b51ad173bf473452c9",
+      "sha256": "ed5f7854f88b5e8d06c37b4a51ae69ade701f18e81c1b5516e445208a0f25042",
+      "provenance": "published executable, verified byte for byte"
+    },
+    {
+      "run_binary": "reference/curvine-server",
+      "source": "d06f3aae0e540dacbebc7f3ee50e68a2ce084baf",
+      "sha256": "8297c4fc5b57dc7d5ff6927557086201a763ae0f21fb3dd819f7f928604c89ed",
+      "provenance": "published executable, verified byte for byte"
+    },
+    {
+      "run_binary": "reference/curvine-cli",
+      "source": "d06f3aae0e540dacbebc7f3ee50e68a2ce084baf",
+      "sha256": "3e4e033582b046ee1f720d2c3fcf0f37fbf7c4838b88ae3a314b1012ad6c5977",
+      "provenance": "published executable, verified byte for byte"
+    },
+    {
+      "run_binary": "reference/curvine-fuse",
+      "source": "d06f3aae0e540dacbebc7f3ee50e68a2ce084baf",
+      "sha256": "d775084b2988a0de93e020f06a6bddfae537de7a27e7f694d84e5f4919202ed6",
+      "provenance": "published executable, verified byte for byte"
+    },
+    {
+      "run_binary": "policy-bin/sdk-cli",
+      "source": "c1cf6cf0c624e80ac7da4accd6aebd9b52ebd294",
+      "sha256": "30c1e4657b18dc2bb0f7d6b2f5db45b4bf738e8e609399b4cc6c81d54ee3d68f",
+      "provenance": "rebuilt from detached PR head, cargo build --release --locked"
+    },
+    {
+      "run_binary": "policy-bin/curvine-fuse",
+      "source": "cccb6193f7e74aca1e0ecb8b9bf4f10c681efbd9",
+      "sha256": "32b9dbc4afd6fa54695b67faf8152706a737365796696300d34b0396d894acaf",
+      "provenance": "rebuilt from detached PR head, cargo build --release --locked"
+    }
+  ],
+  "host": {
+    "os": "Linux",
+    "kernel": "7.0.0-38-generic",
+    "machine": "AMD EPYC-Rome KVM virtual machine",
+    "vcpus": 16,
+    "filesystem": "ext4",
+    "guest_block_device": "/dev/vda1",
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "io_uring_disabled": 0,
+    "nvme": "The physical NVMe host was offline. All measurements used the ext4 VM."
+  },
+  "method": {
+    "timezone": "UTC",
+    "paired_repeats": 6,
+    "simultaneous_timed_benchmarks_on_host": 1,
+    "backend_seconds": 20,
+    "standalone_fuse_stream_seconds": 10,
+    "warmup_seconds": 2,
+    "prefill": "64 files of 4 MiB",
+    "sdk_write_threshold_bytes": 2147483648,
+    "write_semantics": "buffered Complete",
+    "filesystem_mount": "FUSE direct_io, writeback and splice disabled",
+    "network": "loopback TCP",
+    "p95_p99": "Streaming and SDK writes: whole 4 MiB file; random-open: open/read/close; repeated-seek: one pread. Streaming percentiles are reported by the CLI histogram.",
+    "cpu": "Worker process user plus system seconds per application GiB; guest kernel helper threads and client/FUSE processes are not included.",
+    "comparison": "median of six within-pair throughput changes; rates, p95/p99 and CPU are separate medians for each arm",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+  },
+  "timing_stages": [
+    "2026-11-26T17:18:12Z start hash",
+    "2026-11-26T17:18:24Z finished hash",
+    "2026-11-26T17:18:24Z start sdk-batching",
+    "2026-11-26T17:25:22Z finished sdk-batching",
+    "2026-11-26T17:25:22Z start fuse-policy",
+    "2026-11-26T17:29:24Z finished fuse-policy",
+    "2026-11-26T17:29:24Z start fuse-ring-stream",
+    "2026-11-26T17:33:10Z finished fuse-ring-stream",
+    "2026-11-26T17:33:10Z start fuse-random",
+    "2026-11-26T17:34:25Z finished fuse-random",
+    "2026-11-26T17:34:25Z start final-matrix",
+    "2026-11-26T18:04:18Z finished final-matrix",
+    "2026-11-26T18:04:18Z start mounted-random",
+    "2026-11-26T18:05:35Z finished mounted-random"
+  ],
+  "timed_e2e_observations": 156,
+  "headline_workloads": 11,
+  "timed_worker_observations": 132,
+  "worker_control_stages": [
+    "2026-11-26T18:14:24Z start worker-reads",
+    "2026-11-26T18:14:57Z finished worker-reads",
+    "2026-11-26T18:14:57Z start worker-writes",
+    "2026-11-26T18:15:03Z finished worker-writes",
+    "2026-11-26T18:15:03Z start worker-copy",
+    "2026-11-26T18:15:07Z finished worker-copy"
+  ],
+  "worker_libtest_sha256": "aa1a501d7805c9ad32c1fef0056e0bfb4d0bef39de55037dd246b6509338b744",
+  "raw_counts": {
+    "backend": 72,
+    "mounted": 24,
+    "sdk": 24,
+    "fuse_local": 14,
+    "fuse_ring": 12,
+    "fuse_seek": 12
+  },
+  "correctness_tests": {
+    "Worker TCP with a real ring, including Flush, cancel, disconnect and restart": 4,
+    "Local storage unit tests, including real-ring cases": 166,
+    "SDK raw RPC client tests, including gathered timeout and reply order": 7,
+    "SDK write framing": 1,
+    "FUSE seek limit on both reader paths": 1
+  }
+}
