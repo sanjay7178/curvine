@@ -1,0 +1,36 @@
+{
+  "binary_sha256": {
+    "curvine-server": "8297c4fc5b57dc7d5ff6927557086201a763ae0f21fb3dd819f7f928604c89ed",
+    "curvine-cli": "3e4e033582b046ee1f720d2c3fcf0f37fbf7c4838b88ae3a314b1012ad6c5977",
+    "curvine-fuse": "d775084b2988a0de93e020f06a6bddfae537de7a27e7f694d84e5f4919202ed6",
+    "worker-test": "6636ebbf02a326c1ef9a77ef968eb59dcf0043bc603aebd47dc6067a8b92e6b1",
+    "fuse-policy": "204e58f9543247c1a7533b75adc330784187f64a11444200d048b3d8a84e981a",
+    "sdk-batching": "9d28d4c18448f6b7d1a1ad8ba67b40eb617c42fdc7c89f1df083a8d40abea5fe"
+  },
+  "kernel": "7.0.0-38-generic",
+  "cpu_set": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "pairs": 6,
+  "seconds": 20,
+  "cells": [
+    "client-4-read-64",
+    "client-128-read-64",
+    "fuse-4-read-64",
+    "client-128-write-1"
+  ],
+  "source": "d06f3aae0e540dacbebc7f3ee50e68a2ce084baf",
+  "fuse_policy_source": "0a2a9d5f1249458ee5613a6e8653835936513521",
+  "sdk_source": "bb1b362f62dcc2b482f550be5cb23aa3f0673df8"
+}
