@@ -1,0 +1,50 @@
+diff --git a/crates/adapters/curvine-storage-local/src/uring.rs b/crates/adapters/curvine-storage-local/src/uring.rs
+index 17f84cb7..58bc72c7 100644
+--- a/crates/adapters/curvine-storage-local/src/uring.rs
++++ b/crates/adapters/curvine-storage-local/src/uring.rs
+@@ -353,10 +353,20 @@ impl UringExecutor {
+     }
+
+     fn read_transfer(&self, len: usize) -> Transfer {
+-        if len != CHUNK_BYTES {
++        if !matches!(len, 262_144 | CHUNK_BYTES) {
+             return Transfer::read(len);
+         }
+-        let cached = self.0.read_buffers.lock().unwrap().pop();
++        let cached = {
++            let mut available = self.0.read_buffers.lock().unwrap();
++            if let Some(index) = available.iter().rposition(|buf| buf.capacity() == len) {
++                Some(available.swap_remove(index))
++            } else {
++                if available.len() == IDLE_READ_BUFFERS {
++                    available.pop();
++                }
++                None
++            }
++        };
+         Transfer::Read {
+             buffer: cached.unwrap_or_else(|| Vec::with_capacity(len)),
+             len,
+diff --git a/curvine-worker/src/worker/handler/read_handler.rs b/curvine-worker/src/worker/handler/read_handler.rs
+index 27e7cb45..0194c8f7 100644
+--- a/curvine-worker/src/worker/handler/read_handler.rs
++++ b/curvine-worker/src/worker/handler/read_handler.rs
+@@ -258,11 +258,16 @@ impl ReadHandler {
+         // the small chunks for which one ring round trip per frame is costly.
+         const MAX_CHUNK_BYTES: i32 = 4 * 1024;
+         const MAX_FRAMES: i64 = 4;
+-        if !self.owned_reads || ctx.req_id != request.req_id() || ctx.chunk_size > MAX_CHUNK_BYTES {
++        let frames = match ctx.chunk_size {
++            1..=MAX_CHUNK_BYTES => MAX_FRAMES,
++            131_072 => 2,
++            _ => return 1,
++        };
++        if !self.owned_reads || ctx.req_id != request.req_id() {
+             return 1;
+         }
+         let remaining = (ctx.len - file.block_pos()) / i64::from(ctx.chunk_size);
+-        remaining.clamp(1, MAX_FRAMES) as usize
++        remaining.clamp(1, frames) as usize
+     }
+
+     #[cfg(all(target_os = "linux", not(feature = "fault-injection")))]

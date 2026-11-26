@@ -1,0 +1,244 @@
+diff --git a/crates/core/rpc/src/handler/frame.rs b/crates/core/rpc/src/handler/frame.rs
+index f03ff2c0..4e35edbc 100644
+--- a/crates/core/rpc/src/handler/frame.rs
++++ b/crates/core/rpc/src/handler/frame.rs
+@@ -34,6 +34,11 @@ pub trait Frame {
+
+     fn receive(&mut self) -> impl Future<Output = IOResult<Message>>;
+
++    /// Take one complete, header-only frame matching this stream without reading the socket.
++    fn take_buffered_match(&mut self, _first: &Message) -> Option<Message> {
++        None
++    }
++
+     fn new_conn_state(&self) -> ConnState;
+
+     fn split(self) -> (ReadFrame, WriteFrame);
+diff --git a/crates/core/rpc/src/handler/message_handler.rs b/crates/core/rpc/src/handler/message_handler.rs
+index eb90bcc3..7ff9211b 100644
+--- a/crates/core/rpc/src/handler/message_handler.rs
++++ b/crates/core/rpc/src/handler/message_handler.rs
+@@ -50,6 +50,28 @@ pub trait MessageHandler: Send + Sync + 'static {
+         async { panic!("Please implement the async_handle method") }
+     }
+
++    fn buffered_batch_limit(&self, _request: &Message) -> usize {
++        1
++    }
++
++    fn handle_buffered_batch(
++        &self,
++        requests: Vec<Message>,
++    ) -> impl Future<Output = Vec<Message>> + Send {
++        async move {
++            let mut responses = Vec::with_capacity(requests.len());
++            for request in requests {
++                let protocol = request.protocol;
++                responses.push(self.async_handle(request).await.unwrap_or_else(|err| {
++                    crate::message::Builder::protocol(protocol)
++                        .build()
++                        .error_ext(&err)
++                }));
++            }
++            responses
++        }
++    }
++
+     fn get_rt(&self, _msg: &Message) -> Option<&Runtime> {
+         None
+     }
+diff --git a/crates/core/rpc/src/handler/rpc_frame.rs b/crates/core/rpc/src/handler/rpc_frame.rs
+index 6e55995a..3aa49d68 100644
+--- a/crates/core/rpc/src/handler/rpc_frame.rs
++++ b/crates/core/rpc/src/handler/rpc_frame.rs
+@@ -253,6 +253,26 @@ impl Frame for RpcFrame {
+         }
+     }
+
++    fn take_buffered_match(&mut self, first: &Message) -> Option<Message> {
++        if self.enable_splice || self.buf.len() < PROTOCOL_USIZE {
++            return None;
++        }
++        let (protocol, header, data) = Message::decode_protocol(&mut &self.buf[..]).ok()?;
++        if header != 0
++            || data != 0
++            || protocol.req_id != first.req_id()
++            || protocol.code != first.code()
++            || protocol.status != first.protocol.status
++        {
++            return None;
++        }
++        bytes::Buf::advance(&mut *self.buf, PROTOCOL_USIZE);
++        self.buf.maybe_shrink();
++        let mut msg = Message::new(protocol, None, DataSlice::Empty);
++        msg.set_time();
++        Some(msg)
++    }
++
+     fn new_conn_state(&self) -> ConnState {
+         let ip = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 0));
+         let client_addr = self.io.peer_addr().unwrap_or(ip);
+diff --git a/crates/core/rpc/src/handler/stream_handler.rs b/crates/core/rpc/src/handler/stream_handler.rs
+index e3c5eb21..4682448b 100644
+--- a/crates/core/rpc/src/handler/stream_handler.rs
++++ b/crates/core/rpc/src/handler/stream_handler.rs
+@@ -72,6 +72,25 @@ impl<F: Frame, M: MessageHandler> StreamHandler<F, M> {
+     }
+
+     pub async fn call(&mut self, request: Message) -> IOResult<()> {
++        let limit = self.handler.buffered_batch_limit(&request);
++        if limit > 1 {
++            if let Some(next) = self.frame.take_buffered_match(&request) {
++                let mut requests = vec![request, next];
++                while requests.len() < limit {
++                    let Some(next) = self.frame.take_buffered_match(&requests[0]) else {
++                        break;
++                    };
++                    requests.push(next);
++                }
++                for response in self.handler.handle_buffered_batch(requests).await {
++                    let response = check_response_size(response);
++                    if response.not_empty() {
++                        self.frame.send(response).await?;
++                    }
++                }
++                return Ok(());
++            }
++        }
+         let response = dispatch(&self.rt, &self.handler, request).await?;
+
+         if response.not_empty() {
+@@ -137,7 +156,11 @@ pub(crate) async fn dispatch_with_guard<M: MessageHandler, G: Send + 'static>(
+         }
+     };
+
+-    let response = if response.total_len() > MAX_FRAME_SIZE as usize {
++    Ok(check_response_size(response))
++}
++
++fn check_response_size(response: Message) -> Message {
++    if response.total_len() > MAX_FRAME_SIZE as usize {
+         let err = CommonErrorExt::from(format!(
+             "request({}) response frame is {} bytes, over the {} byte limit",
+             response.req_id(),
+@@ -147,7 +170,5 @@ pub(crate) async fn dispatch_with_guard<M: MessageHandler, G: Send + 'static>(
+         response.error_ext(&err)
+     } else {
+         response
+-    };
+-
+-    Ok(response)
++    }
+ }
+diff --git a/curvine-worker/src/worker/handler/read_handler.rs b/curvine-worker/src/worker/handler/read_handler.rs
+index 83768135..071c795a 100644
+--- a/curvine-worker/src/worker/handler/read_handler.rs
++++ b/curvine-worker/src/worker/handler/read_handler.rs
+@@ -231,7 +231,7 @@ impl ReadHandler {
+
+         let enable_send_file = self.enable_send_file && file.supports_send_file();
+         let result = file.read_region(enable_send_file, context.chunk_size);
+-        self.read_response(msg, spend, result)
++        self.read_response(msg, &spend, result)
+     }
+
+     #[cfg(all(target_os = "linux", not(feature = "fault-injection")))]
+@@ -246,13 +246,59 @@ impl ReadHandler {
+         Self::check_context(context, msg)?;
+         let spend = TimeSpent::new();
+         let result = file.read_owned_region(context.chunk_size).await;
+-        self.read_response(msg, spend, result)
++        self.read_response(msg, &spend, result)
++    }
++
++    #[cfg(all(target_os = "linux", not(feature = "fault-injection")))]
++    pub(super) fn buffered_batch_limit(&self, request: &Message) -> usize {
++        let (Some(ctx), Some(file)) = (&self.context, &self.file) else {
++            return 1;
++        };
++        if !self.owned_reads || ctx.req_id != request.req_id() {
++            return 1;
++        }
++        let remaining = (ctx.len - file.block_pos()) / i64::from(ctx.chunk_size);
++        (1..=4)
++            .rev()
++            .find(|&n| {
++                i64::from(n) <= remaining && BlockReadContext::fits_owned_chunk(n * ctx.chunk_size)
++            })
++            .unwrap_or(1) as usize
++    }
++
++    #[cfg(all(target_os = "linux", not(feature = "fault-injection")))]
++    pub(super) async fn read_buffered_batch(&mut self, requests: &[Message]) -> Vec<Message> {
++        let chunk = self.context.as_ref().unwrap().chunk_size;
++        let spend = TimeSpent::new();
++        let len = chunk * requests.len() as i32;
++        let result = self.file.as_mut().unwrap().read_owned_region(len).await;
++        if let Ok(DataSlice::Bytes(mut bytes)) = result {
++            return requests
++                .iter()
++                .map(|request| {
++                    let data = DataSlice::Bytes(bytes.split_to(chunk as usize));
++                    self.read_response(request, &spend, Ok(data))
++                        .unwrap_or_else(|err| request.error_ext(&err))
++                })
++                .collect();
++        }
++        // A failed exact read leaves the cursor at its original position.
++        // Preserve per-frame results when only a suffix of the range failed.
++        let mut responses = Vec::with_capacity(requests.len());
++        for request in requests {
++            responses.push(
++                self.read_owned(request)
++                    .await
++                    .unwrap_or_else(|err| request.error_ext(&err)),
++            );
++        }
++        responses
+     }
+
+     fn read_response(
+         &self,
+         msg: &Message,
+-        spend: TimeSpent,
++        spend: &TimeSpent,
+         result: IOResult<DataSlice>,
+     ) -> FsResult<Message> {
+         let file = try_option_ref!(self.file);
+diff --git a/curvine-worker/src/worker/handler/worker_handler.rs b/curvine-worker/src/worker/handler/worker_handler.rs
+index c96c8d10..c222dcc1 100644
+--- a/curvine-worker/src/worker/handler/worker_handler.rs
++++ b/curvine-worker/src/worker/handler/worker_handler.rs
+@@ -110,6 +110,32 @@ impl MessageHandler for WorkerHandler {
+         Ok(result.unwrap_or_else(|err| msg.error_ext(&err)))
+     }
+
++    #[cfg(all(target_os = "linux", not(feature = "fault-injection")))]
++    fn buffered_batch_limit(&self, request: &Message) -> usize {
++        if self.store.has_file_io_ring() && Self::is_owned_read_frame(request) {
++            if let Some(BlockHandler::Reader(reader)) = self.handler.lock().as_ref() {
++                return reader.buffered_batch_limit(request);
++            }
++        }
++        1
++    }
++
++    #[cfg(all(target_os = "linux", not(feature = "fault-injection")))]
++    async fn handle_buffered_batch(&self, requests: Vec<Message>) -> Vec<Message> {
++        let active = self.handler.lock().take_if(
++            |handler| matches!(handler, BlockHandler::Reader(reader) if reader.can_read_owned()),
++        );
++        let Some(BlockHandler::Reader(mut reader)) = active else {
++            return requests
++                .iter()
++                .map(|request| request.error_ext(&FsError::common("no active owned read session")))
++                .collect();
++        };
++        let responses = reader.read_buffered_batch(&requests).await;
++        self.handler.lock().replace(BlockHandler::Reader(reader));
++        responses
++    }
++
+     #[cfg(target_os = "linux")]
+     fn handle_mut(&self, msg: &mut Message) -> FsResult<Message> {
+         #[cfg(test)]

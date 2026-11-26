@@ -1,0 +1,32 @@
+{
+  "source": "d06f3aae0e540dacbebc7f3ee50e68a2ce084baf",
+  "final_source": "56f0ad726901a4cfc84e18b51ad173bf473452c9",
+  "kernel": "7.0.0-38-generic",
+  "cpu_set": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "binary_sha256": {
+    "server": "8297c4fc5b57dc7d5ff6927557086201a763ae0f21fb3dd819f7f928604c89ed",
+    "fuse": "d775084b2988a0de93e020f06a6bddfae537de7a27e7f694d84e5f4919202ed6",
+    "cli": "3e4e033582b046ee1f720d2c3fcf0f37fbf7c4838b88ae3a314b1012ad6c5977",
+    "pool": "2c2a1628e4fc7d21469577e487471901335a70309816ac039bc15ca88bfac9b8",
+    "wake": "8a1c316ec9ee1c362be98b55a9ed99784548d4c8878371081a489cd62d02d087",
+    "extent": "7b5550f860bb5be2b6eb2528e195080b0c28ce51d9c0fccc7e43d81ed260dcee",
+    "burst": "808ba9e271fb541dd55b66a953b64dae2a5ba0d347d1484f18aa11f5a402168b",
+    "final-server": "23383c84f6b322f6a796637441e2b6bbe9bd24824963cb35ab477df137ecebaf",
+    "final-cli": "787fea22745f49d26274216b027275e55a239950c6b636dde1ed67aaed42cec4",
+    "final-fuse": "ed5f7854f88b5e8d06c37b4a51ae69ade701f18e81c1b5516e445208a0f25042",
+    "midpair": "6aa2c1efc1c7c13d726b1e6c97248efec0130f58ab7de6f51d8ac34f57b1bf06"
+  }
+}

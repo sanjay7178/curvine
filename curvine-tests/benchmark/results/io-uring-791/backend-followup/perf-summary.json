@@ -1,0 +1,12 @@
+{
+  "event": "cpu-clock",
+  "kernel_leaf_samples_pct": {
+    "rep_movs_alternative": 36.51,
+    "kernel_init_pages": 16.76,
+    "_raw_spin_unlock_irqrestore": 3.18,
+    "_raw_spin_unlock_irq": 2.04,
+    "skb_release_data": 1.62,
+    "finish_task_switch.isra.0": 1.26
+  },
+  "lost_samples": 0
+}

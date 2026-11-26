@@ -1,0 +1,23 @@
+diff --git a/crates/adapters/curvine-storage-local/src/uring.rs b/crates/adapters/curvine-storage-local/src/uring.rs
+index 17f84cb7..668d6d25 100644
+--- a/crates/adapters/curvine-storage-local/src/uring.rs
++++ b/crates/adapters/curvine-storage-local/src/uring.rs
+@@ -353,10 +353,16 @@ impl UringExecutor {
+     }
+
+     fn read_transfer(&self, len: usize) -> Transfer {
+-        if len != CHUNK_BYTES {
++        if !matches!(len, 4096 | 131_072 | CHUNK_BYTES) {
+             return Transfer::read(len);
+         }
+-        let cached = self.0.read_buffers.lock().unwrap().pop();
++        let cached = {
++            let mut buffers = self.0.read_buffers.lock().unwrap();
++            buffers
++                .iter()
++                .rposition(|buffer| buffer.capacity() == len)
++                .map(|index| buffers.swap_remove(index))
++        };
+         Transfer::Read {
+             buffer: cached.unwrap_or_else(|| Vec::with_capacity(len)),
+             len,

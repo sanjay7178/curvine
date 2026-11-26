@@ -1,0 +1,77 @@
+diff --git a/crates/adapters/curvine-storage-local/src/staged_write.rs b/crates/adapters/curvine-storage-local/src/staged_write.rs
+index eb860fac..e3b0245a 100644
+--- a/crates/adapters/curvine-storage-local/src/staged_write.rs
++++ b/crates/adapters/curvine-storage-local/src/staged_write.rs
+@@ -376,14 +376,15 @@ impl StagedReadView {
+ struct WorkingFile {
+     name: NamedTempFile,
+     file: Arc<File>,
++    // Extent of the private inode after its last fully completed write.
++    extent: u64,
+     // The latest view covers the largest prefix exposed on this inode.
+     view: Option<StagedReadView>,
+ }
+
+ impl WorkingFile {
+     fn read_view(&mut self, path: &Arc<Path>) -> IOResult<StagedReadView> {
+-        let meta = self.file.metadata()?;
+-        let physical_len = i64::try_from(meta.len()).map_err(|_| {
++        let physical_len = i64::try_from(self.extent).map_err(|_| {
+             io::Error::new(ErrorKind::InvalidData, "staging extent does not fit in i64")
+         })?;
+         if let Some(view) = &mut self.view {
+@@ -395,6 +396,7 @@ impl WorkingFile {
+         // be a separate, read-only open description: readers can seek without
+         // disturbing io::copy on the writer's working or checkpoint handle.
+         let file = File::open(self.name.path())?;
++        let meta = self.file.metadata()?;
+         let read_meta = file.metadata()?;
+         if (read_meta.dev(), read_meta.ino()) != (meta.dev(), meta.ino()) {
+             return Err(io::Error::new(
+@@ -497,10 +499,16 @@ impl StagedFileWriter {
+             return Ok(());
+         }
+         let result = self.prepare_working(offset, fresh).and_then(|()| {
+-            let working = self.working.as_ref().expect("prepared working file");
++            let working = self.working.as_mut().expect("prepared working file");
++            let end = offset
++                .checked_add(payload.as_ref().len() as u64)
++                .ok_or_else(|| {
++                    io::Error::new(ErrorKind::InvalidInput, "staging write range overflow")
++                })?;
+             #[cfg(feature = "write-bench-profile")]
+             let start = crate::write_bench_profile::start_write(payload.as_ref().len());
+             let _receipt = (self.write_at)(&working.file, offset, payload)?;
++            working.extent = working.extent.max(end);
+             #[cfg(feature = "write-bench-profile")]
+             if let Some(start) = start {
+                 crate::write_bench_profile::record_write_call(start.elapsed(), _receipt.ring);
+@@ -597,13 +605,19 @@ impl StagedFileWriter {
+             fs::remove_file(&self.path)?;
+             self.removed_placeholder = true;
+         }
+-        let WorkingFile { name, file, view } = self.working.take().unwrap();
++        let WorkingFile {
++            name,
++            file,
++            extent,
++            view,
++        } = self.working.take().unwrap();
+         match name.persist_noclobber(active) {
+             Ok(_) => Ok(()),
+             Err(error) => {
+                 self.working = Some(WorkingFile {
+                     name: error.file,
+                     file,
++                    extent,
+                     view,
+                 });
+                 Err(error.error.into())
+@@ -673,6 +687,7 @@ impl StagedFileWriter {
+         self.working = Some(WorkingFile {
+             name,
+             file,
++            extent: meta.len(),
+             view: None,
+         });
+         Ok(())
